@@ -1,0 +1,12 @@
+# One keyword per line.
+# These are meant to match confusing non_UXO samples that often look UXO-like.
+
+branch
+wood
+wreck
+shipwreck
+cylinder
+barrel
+cabinet
+box
+plank

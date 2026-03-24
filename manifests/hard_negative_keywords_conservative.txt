@@ -1,0 +1,6 @@
+# More conservative hard-negative list.
+# Only keep the classes that most often look UXO-like in current errors.
+
+branch
+wreck
+shipwreck

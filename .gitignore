@@ -1,0 +1,31 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+.venv/
+venv/
+env/
+.env
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Large local datasets
+tuc_images/
+underwater_dataset_v1/
+aux_recordings_optical_v1/
+
+# Generated artifacts
+models/
+outputs/
+*.pth
+
+# Old local experiments / backups
+archive/
+
+# Local temp metrics or smoke-test files
+metrics/smoke_*.json
+models/smoke_*.pth

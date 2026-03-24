@@ -1,0 +1,153 @@
+{
+  "seed": 42,
+  "augmentation_profile": "underwater",
+  "hard_negative_factor": 1.5,
+  "hard_negative_keywords": [
+    "branch",
+    "wood",
+    "wreck",
+    "shipwreck",
+    "cylinder",
+    "barrel",
+    "cabinet",
+    "box",
+    "plank"
+  ],
+  "best_val_acc": 0.7586206896551724,
+  "val_acc": 0.7586206896551724,
+  "test_acc": 0.7142857142857143,
+  "classes": [
+    "UXO",
+    "non_UXO"
+  ],
+  "train_class_counts": {
+    "UXO": 26,
+    "non_UXO": 98
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.5611108541488647,
+      "val_acc": 0.7586206896551724
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.3101047035306692,
+      "val_acc": 0.6551724137931034
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.1925974260084331,
+      "val_acc": 0.6551724137931034
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.15293777827173471,
+      "val_acc": 0.6551724137931034
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.0764473588205874,
+      "val_acc": 0.7241379310344828
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.06414432590827346,
+      "val_acc": 0.7241379310344828
+    },
+    {
+      "epoch": 7,
+      "train_loss": 0.09580891486257315,
+      "val_acc": 0.6551724137931034
+    },
+    {
+      "epoch": 8,
+      "train_loss": 0.0913135267328471,
+      "val_acc": 0.5862068965517241
+    },
+    {
+      "epoch": 9,
+      "train_loss": 0.06631020494387485,
+      "val_acc": 0.6206896551724138
+    },
+    {
+      "epoch": 10,
+      "train_loss": 0.08964574744459242,
+      "val_acc": 0.6551724137931034
+    }
+  ],
+  "val_confusion_matrix": [
+    [
+      1,
+      7
+    ],
+    [
+      0,
+      21
+    ]
+  ],
+  "test_confusion_matrix": [
+    [
+      3,
+      4
+    ],
+    [
+      4,
+      17
+    ]
+  ],
+  "val_report": {
+    "UXO": {
+      "precision": 1.0,
+      "recall": 0.125,
+      "f1-score": 0.2222222222222222,
+      "support": 8.0
+    },
+    "non_UXO": {
+      "precision": 0.75,
+      "recall": 1.0,
+      "f1-score": 0.8571428571428571,
+      "support": 21.0
+    },
+    "accuracy": 0.7586206896551724,
+    "macro avg": {
+      "precision": 0.875,
+      "recall": 0.5625,
+      "f1-score": 0.5396825396825397,
+      "support": 29.0
+    },
+    "weighted avg": {
+      "precision": 0.8189655172413793,
+      "recall": 0.7586206896551724,
+      "f1-score": 0.6819923371647509,
+      "support": 29.0
+    }
+  },
+  "test_report": {
+    "UXO": {
+      "precision": 0.42857142857142855,
+      "recall": 0.42857142857142855,
+      "f1-score": 0.42857142857142855,
+      "support": 7.0
+    },
+    "non_UXO": {
+      "precision": 0.8095238095238095,
+      "recall": 0.8095238095238095,
+      "f1-score": 0.8095238095238095,
+      "support": 21.0
+    },
+    "accuracy": 0.7142857142857143,
+    "macro avg": {
+      "precision": 0.6190476190476191,
+      "recall": 0.6190476190476191,
+      "f1-score": 0.6190476190476191,
+      "support": 28.0
+    },
+    "weighted avg": {
+      "precision": 0.7142857142857143,
+      "recall": 0.7142857142857143,
+      "f1-score": 0.7142857142857143,
+      "support": 28.0
+    }
+  }
+}
