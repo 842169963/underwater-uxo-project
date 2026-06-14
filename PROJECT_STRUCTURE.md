@@ -55,6 +55,18 @@ Important files:
 | `metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxmix1_lite.json` | Strict 3-fold result with lighter combined auxiliary warmup. |
 | `metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json` | Best strict strategy so far: `recordings` warmup plus small trash train supplement. |
 
+## Model Weights
+
+Only representative final model weights are tracked. Intermediate, exploratory, and smoke-test weights remain ignored.
+
+| Path | Purpose |
+|---|---|
+| `models/README.md` | Explains why only selected weights are committed. |
+| `models/underwater_v1_best_model_seed42_underwater_hn12_cons.pth` | Best balanced single-split model. |
+| `models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold1_best.pth` | Fold 1 model from the best strict group-CV strategy. |
+| `models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold2_best.pth` | Fold 2 model from the best strict group-CV strategy. |
+| `models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold3_best.pth` | Fold 3 model from the best strict group-CV strategy. |
+
 ## Data Folders
 
 ### Tracked
@@ -63,6 +75,7 @@ Important files:
 |---|---|
 | `aux_combined_optical_v1/` | Compact full combined auxiliary dataset, `UXO=285`, `non_UXO=278`. |
 | `aux_combined_optical_v1_lite/` | Compact lighter combined auxiliary dataset, `UXO=285`, `non_UXO=115`. |
+| `models/` | Only the selected representative model weights listed above. |
 
 ### Local-only / ignored
 
@@ -71,7 +84,7 @@ Important files:
 | `tuc_images/` | Original source image folders; too large and source-specific. |
 | `underwater_dataset_v1/` | Generated main dataset split. |
 | `aux_recordings_optical_v1/` | Generated auxiliary crops from local `recordings` source. |
-| `models/` | Trained `.pth` files. |
+| unselected `models/*.pth` | Intermediate and smoke-test trained weights. |
 | `outputs/` | Grad-CAM and other generated visual outputs. |
 | `archive/` | Old experiments and backups. |
 | `__pycache__/` | Python cache files. |
@@ -82,6 +95,5 @@ Important files:
 - Put experiment records in `metrics/`.
 - Put data split and auxiliary-set tables in `manifests/`.
 - Put project explanations, reports, and findings in `docs/`.
-- Keep generated models and visualizations out of Git.
+- Keep only representative final model weights in Git.
 - Do not commit smoke-test files; use names matching `metrics/smoke_*.json` so they stay ignored.
-

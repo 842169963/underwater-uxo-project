@@ -19,9 +19,22 @@ underwater_dataset_v1/
 aux_recordings_optical_v1/
 
 # Generated artifacts
-models/
 outputs/
+
+# Model weights: keep most generated weights local, but track the final
+# representative models documented in models/README.md.
+models/*
+!models/README.md
+!models/underwater_v1_best_model_seed42_underwater_hn12_cons.pth
+!models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/
+!models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold1_best.pth
+!models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold2_best.pth
+!models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold3_best.pth
 *.pth
+!models/underwater_v1_best_model_seed42_underwater_hn12_cons.pth
+!models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold1_best.pth
+!models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold2_best.pth
+!models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold3_best.pth
 
 # Old local experiments / backups
 archive/

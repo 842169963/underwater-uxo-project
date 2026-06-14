@@ -8,9 +8,12 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-ResNet18-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
 [![Task](https://img.shields.io/badge/Task-Binary%20Classification-0F766E?style=for-the-badge)](#project-status)
 [![Validation](https://img.shields.io/badge/Validation-Group%20CV-334155?style=for-the-badge)](#project-status)
+[![Models](https://img.shields.io/badge/Models-Selected%20Weights-7C3AED?style=for-the-badge)](#model-weights)
 
 <a href="#project-status">Status</a> |
 <a href="#results-at-a-glance">Results</a> |
+<a href="#reproducibility">Reproducibility</a> |
+<a href="#model-weights">Models</a> |
 <a href="#repository-layout">Layout</a> |
 <a href="#workflow">Workflow</a> |
 <a href="#current-best-references">References</a>
@@ -68,6 +71,21 @@ Single-split results are useful for model development, but they can be optimisti
 
 The stricter result is the more reliable evidence. It shows that the project direction is valid, but generalization remains data-limited.
 
+## Reproducibility
+
+The repository is organized so the experiment record can be inspected and the selected final models can be reused directly. Exact end-to-end retraining from raw data still requires local source datasets that are not committed to Git.
+
+| Goal | Supported from GitHub clone alone? | Notes |
+|---|---|---|
+| Inspect code, manifests, metrics, and reports | Yes | All scripts, result JSON files, and documentation are tracked. |
+| Use the selected final model weights | Yes | Four representative `.pth` files are tracked under [models/](models/). |
+| Reuse the compact combined auxiliary datasets | Yes | `aux_combined_optical_v1/` and `aux_combined_optical_v1_lite/` are tracked. |
+| Re-run exact training from raw TU images | Requires local data | `tuc_images/` and `underwater_dataset_v1/` are intentionally ignored. |
+| Rebuild the `recordings` auxiliary warmup set | Requires local data | `aux_recordings_optical_v1/` is generated from local `recordings` sources. |
+| Reproduce the reported metrics exactly | Requires the same local data and split state | Metrics are tracked; exact reruns need the ignored source/generated datasets. |
+
+In short: the GitHub repository now preserves the full project logic, result evidence, compact auxiliary data, and final representative model weights. A full raw-data retraining run still needs the original local datasets.
+
 ## Main Finding
 
 The strongest lesson is that **data composition matters more than model complexity** at this stage.
@@ -102,6 +120,7 @@ Hard negatives such as branches, wreck-like shapes, cylinders, plastic objects, 
 |-- docs/
 |-- manifests/
 |-- metrics/
+|-- models/
 |-- aux_combined_optical_v1/
 `-- aux_combined_optical_v1_lite/
 ```
@@ -120,15 +139,17 @@ See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for the detailed file map.
 | Inference | [predict_underwater.py](predict_underwater.py), [predict_underwater_ui.py](predict_underwater_ui.py) | Run CLI or local UI prediction |
 | Documentation | [docs/](docs/) | Store results, progress notes, report outline, and findings |
 | Experiment records | [metrics/](metrics/), [manifests/](manifests/) | Store JSON metrics and dataset manifests |
+| Selected models | [models/](models/) | Store only the final representative `.pth` weights |
 
 ## Data Policy
 
 ### Included in Git
 
-| Folder | Contents |
+| Path | Contents |
 |---|---|
 | [aux_combined_optical_v1](aux_combined_optical_v1) | Full compact combined auxiliary set, `UXO=285`, `non_UXO=278` |
 | [aux_combined_optical_v1_lite](aux_combined_optical_v1_lite) | Lighter compact combined auxiliary set, `UXO=285`, `non_UXO=115` |
+| [models/](models/) | Selected representative model weights only |
 
 ### Local-only / Ignored
 
@@ -137,8 +158,21 @@ See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for the detailed file map.
 | `tuc_images/` | Original source images |
 | `underwater_dataset_v1/` | Generated main training split |
 | `aux_recordings_optical_v1/` | Generated auxiliary crops from local recordings |
-| `models/` | Trained `.pth` model weights |
+| unselected `models/*.pth` | Intermediate and smoke-test model weights |
 | `outputs/` | Grad-CAM and other generated outputs |
+
+## Model Weights
+
+Only the model weights that support the final conclusions are committed. This keeps the repository usable while avoiding the full local model directory, which is about `1.41 GB`.
+
+| Model | File | Role |
+|---|---|---|
+| Best single-split model | [models/underwater_v1_best_model_seed42_underwater_hn12_cons.pth](models/underwater_v1_best_model_seed42_underwater_hn12_cons.pth) | Supports the strongest fixed-split result: `0.8214` test accuracy, `0.8571` UXO recall, `0.7888` macro F1 |
+| Best strict Group-CV fold 1 | [models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold1_best.pth](models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold1_best.pth) | Fold model from the best strict validation strategy |
+| Best strict Group-CV fold 2 | [models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold2_best.pth](models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold2_best.pth) | Fold model from the best strict validation strategy |
+| Best strict Group-CV fold 3 | [models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold3_best.pth](models/groupcv_underwater_hn12_cons_auxrec1_trsupp1/fold3_best.pth) | Fold model from the best strict validation strategy |
+
+See [models/README.md](models/README.md) for the model selection rationale.
 
 ## Environment
 
@@ -223,6 +257,7 @@ python train_underwater_groupcv.py --aux-data-root aux_recordings_optical_v1 --a
 | [docs/PROJECT_PROGRESS.md](docs/PROJECT_PROGRESS.md) | Full progress log |
 | [docs/REPORT_OUTLINE.md](docs/REPORT_OUTLINE.md) | Presentation-ready report outline |
 | [docs/GRADCAM_FINDINGS.md](docs/GRADCAM_FINDINGS.md) | Visual explanation findings |
+| [models/README.md](models/README.md) | Selected model weight rationale |
 | [metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json](metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json) | Best strict-evaluation metric file |
 
 ---
