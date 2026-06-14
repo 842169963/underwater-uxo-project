@@ -1,29 +1,85 @@
+<div align="center">
+
 # Underwater UXO Optical Classification
 
-This repository contains a reproducible optical-only baseline for underwater `UXO` vs `non_UXO` image classification.
+**A reproducible optical-only research baseline for underwater `UXO` vs `non_UXO` image classification.**
 
-The project starts with a small TU optical dataset and builds a controlled experimental pipeline around data preparation, ResNet18 training, hard-negative tuning, Grad-CAM analysis, group-aware validation, and auxiliary optical data experiments.
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-ResNet18-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org/)
+[![Task](https://img.shields.io/badge/Task-Binary%20Classification-0F766E?style=for-the-badge)](#project-status)
+[![Validation](https://img.shields.io/badge/Validation-Group%20CV-334155?style=for-the-badge)](#project-status)
+
+<a href="#project-status">Status</a> |
+<a href="#results-at-a-glance">Results</a> |
+<a href="#repository-layout">Layout</a> |
+<a href="#workflow">Workflow</a> |
+<a href="#current-best-references">References</a>
+
+</div>
+
+---
+
+## Overview
+
+This project builds a controlled experimental pipeline around a small underwater optical dataset. It covers data preparation, ResNet18 baseline training, hard-negative tuning, Grad-CAM analysis, group-aware validation, and auxiliary optical data experiments.
+
+> This is a research baseline, not a deployment-ready detection system.
 
 ## Project Status
 
-This is a research baseline, not a deployment-ready detection system.
+<table>
+  <tr>
+    <td><strong>Current stage</strong></td>
+    <td>Finalized optical-only baseline with strict validation evidence</td>
+  </tr>
+  <tr>
+    <td><strong>Main model</strong></td>
+    <td>ImageNet-pretrained ResNet18, 2-class head</td>
+  </tr>
+  <tr>
+    <td><strong>Primary task</strong></td>
+    <td>Classify cropped underwater optical images as <code>UXO</code> or <code>non_UXO</code></td>
+  </tr>
+  <tr>
+    <td><strong>Most important metric</strong></td>
+    <td><code>UXO recall</code>, with <code>macro F1</code> used for balance</td>
+  </tr>
+  <tr>
+    <td><strong>Main bottleneck</strong></td>
+    <td>Data composition and shape-similar hard negatives</td>
+  </tr>
+</table>
 
-The strongest single-split model reached:
-- test accuracy: `0.8214`
-- UXO recall: `0.8571`
-- macro F1: `0.7888`
+## Results At A Glance
 
-The stricter 3-fold group-aware evaluation shows that generalization is still limited. The best strict-evaluation strategy tested so far is:
+### Best Single-Split Result
 
-`recordings auxiliary warmup + small trash train-stage hard-negative supplement`
+| Setting | Test Accuracy | UXO Recall | Macro F1 |
+|---|---:|---:|---:|
+| Underwater augmentation + conservative hard negatives, seed 42 | `0.8214` | `0.8571` | `0.7888` |
 
-It reached:
-- mean test accuracy: `0.6620`
-- mean UXO recall: `0.5751`
-- mean non_UXO recall: `0.6858`
-- mean macro F1: `0.5870`
+Single-split results are useful for model development, but they can be optimistic because visually similar object instances may be split across train and test.
 
-The main conclusion is that data composition matters more than model complexity at this stage. Hard negatives such as branches, wreck-like shapes, cylinders, plastic objects, and biological clutter are the main source of instability.
+### Best Strict Group-CV Result
+
+| Strategy | Mean Test Accuracy | Mean UXO Recall | Mean non_UXO Recall | Mean Macro F1 |
+|---|---:|---:|---:|---:|
+| `recordings` auxiliary warmup + small trash train-stage supplement | `0.6620` | `0.5751` | `0.6858` | `0.5870` |
+
+The stricter result is the more reliable evidence. It shows that the project direction is valid, but generalization remains data-limited.
+
+## Main Finding
+
+The strongest lesson is that **data composition matters more than model complexity** at this stage.
+
+Hard negatives such as branches, wreck-like shapes, cylinders, plastic objects, and biological clutter are the main source of instability. Auxiliary data helps only when it is introduced carefully:
+
+| Auxiliary strategy | Observed behavior |
+|---|---|
+| Light `recordings` warmup | Improves UXO recall under strict validation |
+| Full trash mix inside warmup | Pushes the model too strongly toward `non_UXO` |
+| Smaller trash mix inside warmup | Still does not recover UXO recall |
+| Small trash train-stage supplement | Best strict-evaluation balance so far |
 
 ## Repository Layout
 
@@ -32,14 +88,17 @@ The main conclusion is that data composition matters more than model complexity 
 |-- README.md
 |-- PROJECT_STRUCTURE.md
 |-- requirements.txt
+|
 |-- prepare_underwater_dataset_v1.py
 |-- prepare_recordings_aux_optical_v1.py
 |-- prepare_combined_aux_optical_v1.py
+|
 |-- train_underwater_classifier_v1.py
 |-- train_underwater_groupcv.py
 |-- gradcam_underwater.py
 |-- predict_underwater.py
 |-- predict_underwater_ui.py
+|
 |-- docs/
 |-- manifests/
 |-- metrics/
@@ -47,59 +106,47 @@ The main conclusion is that data composition matters more than model complexity 
 `-- aux_combined_optical_v1_lite/
 ```
 
-The root directory is intentionally kept as the command-entry layer. Scripts that a user runs directly stay in the root. Supporting evidence and generated records are grouped under `docs/`, `manifests/`, and `metrics/`.
+The root directory is the command-entry layer. Scripts that are meant to be run directly stay in the root. Supporting records are grouped under `docs/`, `manifests/`, and `metrics/`.
 
-See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for a more detailed file map.
+See [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) for the detailed file map.
 
-## Main Components
+## Component Map
 
-### Data Preparation
+| Area | Files | Purpose |
+|---|---|---|
+| Data preparation | [prepare_underwater_dataset_v1.py](prepare_underwater_dataset_v1.py), [prepare_recordings_aux_optical_v1.py](prepare_recordings_aux_optical_v1.py), [prepare_combined_aux_optical_v1.py](prepare_combined_aux_optical_v1.py) | Build the main dataset and auxiliary datasets |
+| Training | [train_underwater_classifier_v1.py](train_underwater_classifier_v1.py), [train_underwater_groupcv.py](train_underwater_groupcv.py) | Run single-split and group-aware experiments |
+| Explainability | [gradcam_underwater.py](gradcam_underwater.py) | Generate Grad-CAM visualizations |
+| Inference | [predict_underwater.py](predict_underwater.py), [predict_underwater_ui.py](predict_underwater_ui.py) | Run CLI or local UI prediction |
+| Documentation | [docs/](docs/) | Store results, progress notes, report outline, and findings |
+| Experiment records | [metrics/](metrics/), [manifests/](manifests/) | Store JSON metrics and dataset manifests |
 
-- [prepare_underwater_dataset_v1.py](prepare_underwater_dataset_v1.py) builds the main optical TU dataset.
-- [prepare_recordings_aux_optical_v1.py](prepare_recordings_aux_optical_v1.py) extracts auxiliary optical crops from the `recordings` dataset.
-- [prepare_combined_aux_optical_v1.py](prepare_combined_aux_optical_v1.py) builds combined auxiliary datasets from `recordings` plus selected `trash_ICRA19` hard negatives.
+## Data Policy
 
-### Training and Evaluation
+### Included in Git
 
-- [train_underwater_classifier_v1.py](train_underwater_classifier_v1.py) trains the single-split ResNet18 baseline.
-- [train_underwater_groupcv.py](train_underwater_groupcv.py) runs 3-fold group-aware cross-validation.
-- [gradcam_underwater.py](gradcam_underwater.py) generates Grad-CAM visualizations.
-- [predict_underwater.py](predict_underwater.py) runs command-line inference.
-- [predict_underwater_ui.py](predict_underwater_ui.py) launches a small local prediction UI.
+| Folder | Contents |
+|---|---|
+| [aux_combined_optical_v1](aux_combined_optical_v1) | Full compact combined auxiliary set, `UXO=285`, `non_UXO=278` |
+| [aux_combined_optical_v1_lite](aux_combined_optical_v1_lite) | Lighter compact combined auxiliary set, `UXO=285`, `non_UXO=115` |
 
-### Results and Documentation
+### Local-only / Ignored
 
-- [docs/RESULTS.md](docs/RESULTS.md) summarizes the main baseline and optimization results.
-- [docs/PROJECT_PROGRESS.md](docs/PROJECT_PROGRESS.md) records the full project timeline.
-- [docs/REPORT_OUTLINE.md](docs/REPORT_OUTLINE.md) provides a presentation-ready report structure.
-- [docs/GRADCAM_FINDINGS.md](docs/GRADCAM_FINDINGS.md) summarizes visual explanation findings.
-- [docs/OPTIMIZATION_ROADMAP.md](docs/OPTIMIZATION_ROADMAP.md) lists possible next experiments.
-- [metrics/](metrics/) stores JSON result files from the main experiments.
-- [manifests/](manifests/) stores dataset and experiment manifests.
-
-## Data Included in Git
-
-This repository includes two compact auxiliary datasets because they are part of the final experiment record:
-
-- [aux_combined_optical_v1](aux_combined_optical_v1): full combined auxiliary set, `UXO=285`, `non_UXO=278`
-- [aux_combined_optical_v1_lite](aux_combined_optical_v1_lite): lighter combined auxiliary set, `UXO=285`, `non_UXO=115`
-
-Large local sources and generated artifacts are intentionally not tracked:
-
-- `tuc_images/`
-- `underwater_dataset_v1/`
-- `aux_recordings_optical_v1/`
-- `models/`
-- `outputs/`
-- `*.pth`
-
-The repository therefore contains enough code, manifests, metrics, and compact auxiliary data to understand and reproduce the reported experiment flow, while excluding bulky original sources and trained model weights.
+| Path | Reason |
+|---|---|
+| `tuc_images/` | Original source images |
+| `underwater_dataset_v1/` | Generated main training split |
+| `aux_recordings_optical_v1/` | Generated auxiliary crops from local recordings |
+| `models/` | Trained `.pth` model weights |
+| `outputs/` | Grad-CAM and other generated outputs |
 
 ## Environment
 
-Recommended:
-- Python `3.10+`
-- PyTorch and torchvision
+| Requirement | Recommended version |
+|---|---|
+| Python | `3.10+` |
+| PyTorch | `2.5+` |
+| torchvision | `0.20+` |
 
 Install dependencies:
 
@@ -107,67 +154,81 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-On Windows, if `python` points to an older interpreter, use:
+On Windows, if `python` points to an older interpreter:
 
 ```bash
 py -3 -m pip install -r requirements.txt
 ```
 
-## Typical Workflow
+## Workflow
 
-### 1. Build the main optical dataset
+| Step | Command / file | Output |
+|---:|---|---|
+| 1 | `prepare_underwater_dataset_v1.py` | Main TU optical dataset manifest |
+| 2 | `prepare_recordings_aux_optical_v1.py` | Auxiliary `recordings` crops |
+| 3 | `train_underwater_classifier_v1.py` | Single-split baseline metrics and model |
+| 4 | `train_underwater_groupcv.py` | Strict group-aware metrics |
+| 5 | `gradcam_underwater.py` | Visual explanation outputs |
 
-Requires the local TU image folders:
+<details>
+<summary><strong>Common commands</strong></summary>
+
+Build the main optical dataset:
 
 ```bash
 python prepare_underwater_dataset_v1.py
 ```
 
-### 2. Build the recordings auxiliary set
-
-Requires the local `recordings/` source outside this repository:
+Build the recordings auxiliary set:
 
 ```bash
 python prepare_recordings_aux_optical_v1.py --clear-output
 ```
 
-The script applies the required `bbox * 3` correction for the optical labels and performs sparse run-level sampling.
-
-### 3. Train the single-split baseline
+Train the single-split baseline:
 
 ```bash
 python train_underwater_classifier_v1.py --epochs 10 --batch-size 16 --balanced-sampling --augmentation-profile underwater
 ```
 
-### 4. Train with light auxiliary warmup
-
-```bash
-python train_underwater_classifier_v1.py --aux-data-root aux_recordings_optical_v1 --aux-epochs 1 --aux-lr 2e-4 --epochs 10 --batch-size 16 --balanced-sampling --augmentation-profile underwater
-```
-
-### 5. Run strict 3-fold group-aware evaluation
+Run strict 3-fold group-aware evaluation:
 
 ```bash
 python train_underwater_groupcv.py --epochs 10 --batch-size 16 --balanced-sampling --augmentation-profile underwater
 ```
 
-### 6. Reproduce the best strict strategy tested so far
+Reproduce the best strict strategy tested so far:
 
 ```bash
 python train_underwater_groupcv.py --aux-data-root aux_recordings_optical_v1 --aux-epochs 1 --aux-lr 2e-4 --extra-train-manifest manifests/trash_train_supplement_v1_manifest.csv --epochs 10 --batch-size 16 --balanced-sampling --augmentation-profile underwater --metrics-out metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json
 ```
 
-## Important Interpretation Notes
+</details>
 
-- Single-split results are useful for model development but can be optimistic.
-- Group-aware cross-validation is the more reliable evidence because it reduces object-instance leakage.
-- UXO recall is a priority metric, but false positives on hard negatives remain a major limitation.
-- Auxiliary data helps only when introduced carefully. Adding too many non_UXO hard negatives during auxiliary warmup can push the model too strongly toward `non_UXO`.
-- The most promising tested strategy is to use `recordings` as light auxiliary warmup and add a small `trash` subset only during the main training stage.
+## Interpretation Notes
+
+| Point | Practical meaning |
+|---|---|
+| Single split can be optimistic | Use it for development, not final claims |
+| Group-aware CV is stricter | It better tests generalization to unseen object instances |
+| UXO recall matters | Missing UXO is more costly than producing some false positives |
+| Hard negatives dominate errors | More careful negative composition is the next best improvement path |
+| Auxiliary data must be controlled | Strong non_UXO auxiliary mixing can hurt UXO sensitivity |
 
 ## Current Best References
 
-- Main result summary: [docs/RESULTS.md](docs/RESULTS.md)
-- Full progress log: [docs/PROJECT_PROGRESS.md](docs/PROJECT_PROGRESS.md)
-- Presentation outline: [docs/REPORT_OUTLINE.md](docs/REPORT_OUTLINE.md)
-- Best strict-evaluation metric file: [metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json](metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json)
+| File | Use |
+|---|---|
+| [docs/RESULTS.md](docs/RESULTS.md) | Main result summary |
+| [docs/PROJECT_PROGRESS.md](docs/PROJECT_PROGRESS.md) | Full progress log |
+| [docs/REPORT_OUTLINE.md](docs/REPORT_OUTLINE.md) | Presentation-ready report outline |
+| [docs/GRADCAM_FINDINGS.md](docs/GRADCAM_FINDINGS.md) | Visual explanation findings |
+| [metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json](metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json) | Best strict-evaluation metric file |
+
+---
+
+<div align="center">
+
+**Final takeaway:** the pipeline is reproducible and the direction is promising, but robust underwater UXO recognition still depends on better independent UXO examples and more carefully selected hard negatives.
+
+</div>
