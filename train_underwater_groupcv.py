@@ -11,13 +11,15 @@ from PIL import Image
 from sklearn.metrics import classification_report, confusion_matrix
 from torch import nn, optim
 from torch.utils.data import DataLoader, Dataset
-from torchvision import models
+from torchvision import datasets, models
 
 from train_underwater_classifier_v1 import (
     build_transforms,
+    build_train_loader,
     build_weighted_sampler,
     class_weights_from_trainset,
     load_hard_negative_keywords,
+    run_train_epochs,
 )
 
 
@@ -202,6 +204,20 @@ def main():
     )
     parser.add_argument("--hard-negative-factor", type=float, default=1.2)
     parser.add_argument(
+        "--aux-data-root",
+        type=Path,
+        default=Path(r"C:\Users\stephenxxy\Desktop\project\uxo_project\aux_recordings_optical_v1"),
+        help="Optional auxiliary optical dataset used as a warmup before each fold.",
+    )
+    parser.add_argument("--aux-epochs", type=int, default=0)
+    parser.add_argument("--aux-lr", type=float, default=2e-4)
+    parser.add_argument(
+        "--extra-train-manifest",
+        type=Path,
+        default=None,
+        help="Optional manifest whose rows are appended to every training fold only.",
+    )
+    parser.add_argument(
         "--fold-model-dir",
         type=Path,
         default=Path(r"C:\Users\stephenxxy\Desktop\project\uxo_project\models\groupcv_underwater_hn12_cons"),
@@ -224,6 +240,7 @@ def main():
     rows = load_manifest_rows(args.manifest)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     hard_negative_keywords = load_hard_negative_keywords(args.hard_negative_keywords)
+    extra_train_rows = load_manifest_rows(args.extra_train_manifest) if args.extra_train_manifest else []
 
     print(f"Device: {device}")
     print(f"Manifest: {args.manifest}")
@@ -232,6 +249,11 @@ def main():
     print(f"Augmentation profile: {args.augmentation_profile}")
     print(f"Hard negative keywords: {hard_negative_keywords}")
     print(f"Hard negative factor: {args.hard_negative_factor}")
+    print(f"Aux data root: {args.aux_data_root}")
+    print(f"Aux epochs: {args.aux_epochs}")
+    print(f"Aux lr: {args.aux_lr}")
+    print(f"Extra train manifest: {args.extra_train_manifest}")
+    print(f"Extra train rows: {len(extra_train_rows)}")
 
     fold_group_sets, fold_stats = build_outer_group_folds(rows, args.num_folds, seed=args.seed)
     print(f"Outer fold group stats: {fold_stats}")
@@ -254,6 +276,8 @@ def main():
         train_rows = select_rows_by_groups(rows, train_groups)
         val_rows = select_rows_by_groups(rows, val_groups)
         test_rows = select_rows_by_groups(rows, test_groups)
+        if extra_train_rows:
+            train_rows = train_rows + extra_train_rows
 
         train_ds = ManifestImageDataset(train_rows, transform=train_tf)
         val_ds = ManifestImageDataset(val_rows, transform=eval_tf)
@@ -297,6 +321,43 @@ def main():
         model = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         model.fc = nn.Linear(model.fc.in_features, len(train_ds.classes))
         model = model.to(device)
+
+        aux_history = []
+        aux_class_counts = {}
+        if args.aux_epochs > 0 and args.aux_data_root.exists():
+            aux_ds = datasets.ImageFolder(args.aux_data_root, transform=train_tf)
+            if aux_ds.classes != LABELS:
+                raise ValueError(
+                    f"Aux dataset classes {aux_ds.classes} do not match expected labels {LABELS}."
+                )
+            aux_class_weights, aux_counts = class_weights_from_trainset(aux_ds)
+            aux_class_counts = dict(zip(aux_ds.classes, aux_counts))
+            print(
+                f"Fold {fold_idx + 1} | Aux warmup: "
+                f"samples={len(aux_ds)} class_counts={aux_class_counts}"
+            )
+            aux_loader, _ = build_train_loader(
+                aux_ds,
+                batch_size=args.batch_size,
+                num_workers=args.num_workers,
+                balanced_sampling=args.balanced_sampling,
+                class_weights=aux_class_weights,
+                hard_negative_keywords=[],
+                hard_negative_factor=1.0,
+            )
+            aux_criterion = nn.CrossEntropyLoss(weight=aux_class_weights.to(device))
+            aux_optimizer = optim.Adam(model.parameters(), lr=args.aux_lr)
+            aux_history = run_train_epochs(
+                model,
+                aux_loader,
+                aux_criterion,
+                aux_optimizer,
+                device,
+                args.aux_epochs,
+                stage_name=f"Fold {fold_idx + 1} Aux",
+            )
+        elif args.aux_epochs > 0:
+            print(f"Fold {fold_idx + 1} | Aux stage skipped: aux-data-root does not exist.")
 
         criterion = nn.CrossEntropyLoss(weight=class_weights)
         optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -361,6 +422,8 @@ def main():
                 "val_size": len(val_ds),
                 "test_size": len(test_ds),
                 "train_class_counts": dict(zip(train_ds.classes, class_counts)),
+                "aux_class_counts": aux_class_counts,
+                "aux_history": aux_history,
                 "val_confusion_matrix": confusion_matrix(val_labels, val_preds).tolist(),
                 "test_confusion_matrix": confusion_matrix(test_labels, test_preds).tolist(),
                 "val_report": val_report,
@@ -377,6 +440,9 @@ def main():
             "val_ratio": args.val_ratio,
             "augmentation_profile": args.augmentation_profile,
             "balanced_sampling": args.balanced_sampling,
+            "aux_data_root": str(args.aux_data_root),
+            "aux_epochs": args.aux_epochs,
+            "aux_lr": args.aux_lr,
             "hard_negative_keywords": hard_negative_keywords,
             "hard_negative_factor": args.hard_negative_factor,
             "manifest": str(args.manifest),

@@ -220,7 +220,125 @@ Interpretation:
 - In these runs the model lost too much UXO sensitivity.
 - So the best auxiliary setting tested so far is still the milder warmup with `aux-epochs=1` and `aux-lr=2e-4`.
 
-## 11. Current project status
+## 11. Auxiliary data under 3-fold Group CV
+- The group-aware CV script was extended to support:
+- `--aux-data-root`
+- `--aux-epochs`
+- `--aux-lr`
+- This allowed the first full experiment where each fold uses:
+- auxiliary optical warmup on `recordings`
+- then TU fold-specific fine-tuning
+- then fold-specific validation and test
+
+Main run:
+- Metric file: [`underwater_groupcv_3fold_underwater_hn12_cons_auxrec1.json`](C:/Users/stephenxxy/Desktop/project/uxo_project/metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1.json)
+- Fold models: [`groupcv_underwater_hn12_cons_auxrec1`](C:/Users/stephenxxy/Desktop/project/uxo_project/models/groupcv_underwater_hn12_cons_auxrec1)
+- Setting:
+- `underwater` augmentation
+- conservative hard negatives (`branch`, `wreck`, `shipwreck`, factor `1.2`)
+- auxiliary warmup with `aux-epochs=1`, `aux-lr=2e-4`
+
+Comparison against the previous non-auxiliary group-CV run:
+
+| Setting | Test Acc Mean | UXO Recall Mean | non_UXO Recall Mean | Macro F1 Mean |
+|---|---:|---:|---:|---:|
+| `3-fold CV, no aux` | 0.6409 | 0.3388 | 0.7288 | 0.5259 |
+| `3-fold CV + aux warmup` | 0.6407 | 0.5092 | 0.6787 | 0.5590 |
+
+Interpretation:
+- This is the first evidence that auxiliary data can help under stricter evaluation.
+- It did **not** improve average accuracy.
+- It **did** improve average `UXO recall` and `macro F1`.
+- The tradeoff is lower `non_UXO recall`, meaning more false positives remain.
+- So the auxiliary route is now more credible than before, but it still needs better negative support and better balancing.
+
+Follow-up combined hard-negative experiment:
+- A new preparation script was added:
+- [`prepare_combined_aux_optical_v1.py`](C:/Users/stephenxxy/Desktop/project/uxo_project/prepare_combined_aux_optical_v1.py)
+- It combines:
+- `recordings` optical auxiliary data
+- `trash_ICRA19` `plastic` crops
+- `trash_ICRA19` `bio` crops
+- Combined auxiliary dataset:
+- [`aux_combined_optical_v1`](C:/Users/stephenxxy/Desktop/project/uxo_project/aux_combined_optical_v1)
+- Manifest:
+- [`aux_combined_optical_v1_manifest.csv`](C:/Users/stephenxxy/Desktop/project/uxo_project/manifests/aux_combined_optical_v1_manifest.csv)
+- Size:
+- `UXO = 285`
+- `non_UXO = 278`
+
+Group-CV run with the combined auxiliary set:
+- Metric file: [`underwater_groupcv_3fold_underwater_hn12_cons_auxmix1.json`](C:/Users/stephenxxy/Desktop/project/uxo_project/metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxmix1.json)
+- Fold models: [`groupcv_underwater_hn12_cons_auxmix1`](C:/Users/stephenxxy/Desktop/project/uxo_project/models/groupcv_underwater_hn12_cons_auxmix1)
+
+Comparison:
+
+| Setting | Test Acc Mean | UXO Recall Mean | non_UXO Recall Mean | Macro F1 Mean |
+|---|---:|---:|---:|---:|
+| `3-fold CV, no aux` | 0.6409 | 0.3388 | 0.7288 | 0.5259 |
+| `3-fold CV + recordings aux` | 0.6407 | 0.5092 | 0.6787 | 0.5590 |
+| `3-fold CV + recordings + trash aux` | 0.7008 | 0.2161 | 0.8424 | 0.5356 |
+
+Interpretation:
+- Adding `trash_ICRA19` negatives changed the balance strongly toward `non_UXO`.
+- Average accuracy improved, and `non_UXO recall` improved a lot.
+- But `UXO recall` dropped sharply, which is too costly for the project goal.
+- So the naive combined-negative setup is **not** the right final answer.
+- It suggests that `trash` negatives should be introduced more selectively or with weaker influence, rather than simply balancing the auxiliary set by count.
+
+Follow-up ratio-control experiment:
+- A lighter combined auxiliary set was also built:
+- [`aux_combined_optical_v1_lite`](C:/Users/stephenxxy/Desktop/project/uxo_project/aux_combined_optical_v1_lite)
+- Manifest:
+- [`aux_combined_optical_v1_lite_manifest.csv`](C:/Users/stephenxxy/Desktop/project/uxo_project/manifests/aux_combined_optical_v1_lite_manifest.csv)
+- Size:
+- `UXO = 285`
+- `non_UXO = 115`
+
+Metric file:
+- [`underwater_groupcv_3fold_underwater_hn12_cons_auxmix1_lite.json`](C:/Users/stephenxxy/Desktop/project/uxo_project/metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxmix1_lite.json)
+
+Comparison:
+
+| Setting | Test Acc Mean | UXO Recall Mean | non_UXO Recall Mean | Macro F1 Mean |
+|---|---:|---:|---:|---:|
+| `3-fold CV + recordings aux` | 0.6407 | 0.5092 | 0.6787 | 0.5590 |
+| `3-fold CV + recordings + trash aux` | 0.7008 | 0.2161 | 0.8424 | 0.5356 |
+| `3-fold CV + lighter trash mix` | 0.7349 | 0.1429 | 0.9075 | 0.5156 |
+
+Interpretation:
+- Reducing the amount of `trash` did **not** recover `UXO recall`.
+- It pushed the model even further toward predicting `non_UXO`.
+- So simple ratio control by dataset size is not enough.
+- The next improvement must be more selective at the sample/type level, not just "less trash".
+
+Alternative trash-usage experiment:
+- Instead of putting `trash` into the auxiliary warmup, a small `trash` subset was added only to the TU fold training stage.
+- Supplement manifest:
+- [`trash_train_supplement_v1_manifest.csv`](C:/Users/stephenxxy/Desktop/project/uxo_project/manifests/trash_train_supplement_v1_manifest.csv)
+- Rows: `75`
+- The group-CV script was extended with:
+- `--extra-train-manifest`
+
+Metric file:
+- [`underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json`](C:/Users/stephenxxy/Desktop/project/uxo_project/metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json)
+- Fold models:
+- [`groupcv_underwater_hn12_cons_auxrec1_trsupp1`](C:/Users/stephenxxy/Desktop/project/uxo_project/models/groupcv_underwater_hn12_cons_auxrec1_trsupp1)
+
+Comparison:
+
+| Setting | Test Acc Mean | UXO Recall Mean | non_UXO Recall Mean | Macro F1 Mean |
+|---|---:|---:|---:|---:|
+| `3-fold CV + recordings aux` | 0.6407 | 0.5092 | 0.6787 | 0.5590 |
+| `3-fold CV + recordings aux + trash train supplement` | 0.6620 | 0.5751 | 0.6858 | 0.5870 |
+
+Interpretation:
+- This use of `trash` is noticeably better than using `trash` in auxiliary warmup.
+- It improved average `test_acc`, `UXO recall`, and `macro F1`.
+- It also kept `non_UXO recall` roughly comparable.
+- So, if `trash` is used at all, the current evidence supports using it as a **small train-stage hard-negative supplement**, not as part of the auxiliary warmup.
+
+## 12. Current project status
 What is already solid:
 - reproducible data preparation
 - baseline training and evaluation
@@ -236,20 +354,20 @@ What remains unstable:
 - balance between UXO sensitivity and false positives
 - effective use of auxiliary data without over-biasing the model
 
-## 12. Current best model
+## 13. Current best model
 Current best balanced single model remains:
 - [`underwater_v1_best_model_seed42_underwater_hn12_cons.pth`](C:/Users/stephenxxy/Desktop/project/uxo_project/models/underwater_v1_best_model_seed42_underwater_hn12_cons.pth)
 
 Why:
 - It still gives the strongest overall balance between UXO recall and non_UXO discrimination.
 
-## 13. Immediate next experiments
-1. Reduce auxiliary pretraining strength.
+## 14. Immediate next experiments
+1. Improve the auxiliary-data composition, especially stronger `cylinder`-like and UXO-like negatives.
 2. Keep TU validation and test unchanged for fair comparison.
-3. Consider whether auxiliary data should be used only as light warmup rather than as a stronger pretraining stage.
-4. Consider changing auxiliary data composition rather than only changing learning rate.
+3. Compare whether auxiliary data should stay as light warmup or become a more structured two-stage schedule.
+4. Re-run controlled comparisons under group-aware CV rather than relying on single-split gains.
 
-## 14. Practical summary
+## 15. Practical summary
 The project has evolved from a small optical-only baseline into a more disciplined experimental pipeline with:
 - data filtering
 - structured hard negatives
