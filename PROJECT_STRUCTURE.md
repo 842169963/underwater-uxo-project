@@ -1,28 +1,87 @@
 # Project Structure
 
-## Main working area
-- [`tuc_images`](C:/Users/stephenxxy/Desktop/project/uxo_project/tuc_images): source optical and non-optical image folders.
-- [`underwater_dataset_v1`](C:/Users/stephenxxy/Desktop/project/uxo_project/underwater_dataset_v1): current v1 dataset split used for training.
-- [`prepare_underwater_dataset_v1.py`](C:/Users/stephenxxy/Desktop/project/uxo_project/prepare_underwater_dataset_v1.py): build v1 manifest and dataset.
-- [`prepare_recordings_aux_optical_v1.py`](C:/Users/stephenxxy/Desktop/project/uxo_project/prepare_recordings_aux_optical_v1.py): extract a small optical auxiliary dataset from `recordings/` with `bbox x3` correction and sparse run sampling.
-- [`train_underwater_classifier_v1.py`](C:/Users/stephenxxy/Desktop/project/uxo_project/train_underwater_classifier_v1.py): train the current baseline.
-- [`gradcam_underwater.py`](C:/Users/stephenxxy/Desktop/project/uxo_project/gradcam_underwater.py): generate Grad-CAM visualizations.
-- [`predict_underwater.py`](C:/Users/stephenxxy/Desktop/project/uxo_project/predict_underwater.py): CLI inference.
-- [`predict_underwater_ui.py`](C:/Users/stephenxxy/Desktop/project/uxo_project/predict_underwater_ui.py): local UI inference.
+This repository is organized around one current pipeline: optical-only underwater `UXO` vs `non_UXO` classification.
 
-## Organized outputs
-- [`models`](C:/Users/stephenxxy/Desktop/project/uxo_project/models): trained `.pth` files.
-- [`metrics`](C:/Users/stephenxxy/Desktop/project/uxo_project/metrics): training and evaluation `.json` metrics.
-- [`manifests`](C:/Users/stephenxxy/Desktop/project/uxo_project/manifests): dataset manifests and split tables.
-- [`outputs/gradcam`](C:/Users/stephenxxy/Desktop/project/uxo_project/outputs/gradcam): Grad-CAM images and summary CSVs.
-- [`docs`](C:/Users/stephenxxy/Desktop/project/uxo_project/docs): reports, findings, and reading notes.
-- [`docs/OPTIMIZATION_ROADMAP.md`](C:/Users/stephenxxy/Desktop/project/uxo_project/docs/OPTIMIZATION_ROADMAP.md): formal next-step optimization plan derived from paper reading and current experiments.
+The root directory contains runnable scripts. Supporting records are grouped into dedicated folders so that reports, manifests, metrics, and data are easy to locate.
 
-## Archived experiments
-- [`archive/stage2`](C:/Users/stephenxxy/Desktop/project/uxo_project/archive/stage2): older stage2 scripts, datasets, and model artifacts kept for reference.
+## Root Scripts
 
-## Quick rule
-- If it is part of the current optical-only v1 pipeline, keep it in the project root.
-- If it is a generated result, put it under `models`, `metrics`, `manifests`, or `outputs`.
-- If it is analysis text or paper notes, put it under `docs`.
-- If it belongs to old experiments, move it to `archive`.
+| File | Purpose |
+|---|---|
+| `prepare_underwater_dataset_v1.py` | Builds the main TU optical-only dataset and manifest. |
+| `prepare_recordings_aux_optical_v1.py` | Extracts the auxiliary `recordings` optical crops with the `bbox * 3` correction. |
+| `prepare_combined_aux_optical_v1.py` | Builds combined auxiliary datasets using `recordings` plus selected `trash_ICRA19` hard negatives. |
+| `train_underwater_classifier_v1.py` | Trains the single-split ResNet18 baseline. |
+| `train_underwater_groupcv.py` | Runs stricter 3-fold group-aware cross-validation. |
+| `gradcam_underwater.py` | Generates Grad-CAM visualizations for trained models. |
+| `predict_underwater.py` | Runs command-line inference on one image. |
+| `predict_underwater_ui.py` | Provides a small local UI for inference. |
+| `download_all_images.py` | Utility script used during early data collection. |
+
+## Documentation
+
+| Path | Purpose |
+|---|---|
+| `docs/RESULTS.md` | Main result summary. |
+| `docs/PROJECT_PROGRESS.md` | Full progress and experiment timeline. |
+| `docs/REPORT_OUTLINE.md` | Presentation-ready project report outline. |
+| `docs/GRADCAM_FINDINGS.md` | Grad-CAM observations and error patterns. |
+| `docs/OPTIMIZATION_ROADMAP.md` | Possible next-step experiments. |
+
+## Manifests
+
+| Path | Purpose |
+|---|---|
+| `manifests/underwater_dataset_v1_manifest.csv` | Main TU optical dataset manifest. |
+| `manifests/recordings_aux_optical_v1_manifest.csv` | Auxiliary `recordings` optical manifest. |
+| `manifests/aux_combined_optical_v1_manifest.csv` | Full combined auxiliary manifest. |
+| `manifests/aux_combined_optical_v1_lite_manifest.csv` | Lighter combined auxiliary manifest. |
+| `manifests/trash_train_supplement_v1_manifest.csv` | Small hard-negative supplement used during main training. |
+| `manifests/hard_negative_keywords.txt` | Earlier hard-negative keyword list. |
+| `manifests/hard_negative_keywords_conservative.txt` | Conservative hard-negative keyword list used in the main experiments. |
+
+## Metrics
+
+The `metrics/` folder contains JSON outputs from real experiments. Temporary smoke-test metrics are ignored by `.gitignore` and should not be committed.
+
+Important files:
+
+| Path | Meaning |
+|---|---|
+| `metrics/underwater_v1_metrics_seed42_underwater_hn12_cons.json` | Best single-split seed-42 conservative hard-negative result. |
+| `metrics/underwater_groupcv_3fold_underwater_hn12_cons.json` | Strict 3-fold baseline without auxiliary data. |
+| `metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1.json` | Strict 3-fold result with `recordings` auxiliary warmup. |
+| `metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxmix1.json` | Strict 3-fold result with full combined auxiliary warmup. |
+| `metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxmix1_lite.json` | Strict 3-fold result with lighter combined auxiliary warmup. |
+| `metrics/underwater_groupcv_3fold_underwater_hn12_cons_auxrec1_trsupp1.json` | Best strict strategy so far: `recordings` warmup plus small trash train supplement. |
+
+## Data Folders
+
+### Tracked
+
+| Path | Contents |
+|---|---|
+| `aux_combined_optical_v1/` | Compact full combined auxiliary dataset, `UXO=285`, `non_UXO=278`. |
+| `aux_combined_optical_v1_lite/` | Compact lighter combined auxiliary dataset, `UXO=285`, `non_UXO=115`. |
+
+### Local-only / ignored
+
+| Path | Reason |
+|---|---|
+| `tuc_images/` | Original source image folders; too large and source-specific. |
+| `underwater_dataset_v1/` | Generated main dataset split. |
+| `aux_recordings_optical_v1/` | Generated auxiliary crops from local `recordings` source. |
+| `models/` | Trained `.pth` files. |
+| `outputs/` | Grad-CAM and other generated visual outputs. |
+| `archive/` | Old experiments and backups. |
+| `__pycache__/` | Python cache files. |
+
+## Organization Rules
+
+- Keep runnable entry-point scripts in the root.
+- Put experiment records in `metrics/`.
+- Put data split and auxiliary-set tables in `manifests/`.
+- Put project explanations, reports, and findings in `docs/`.
+- Keep generated models and visualizations out of Git.
+- Do not commit smoke-test files; use names matching `metrics/smoke_*.json` so they stay ignored.
+
